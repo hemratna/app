@@ -6,5 +6,9 @@ module.exports = {
   // prefetch them all. Prefetching them all will cause the server to apply rate limits in most cases
   chainWebpack: config => {
     config.plugins.delete("prefetch");
+
+    if (process.env.NODE_ENV === "development") {
+      config.output.filename("[name].[hash].js").end();
+    }
   }
 };

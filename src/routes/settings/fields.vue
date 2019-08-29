@@ -1,19 +1,19 @@
 <template>
   <not-found v-if="!collectionInfo" />
-  <div class="settings-fields" v-else>
+  <div v-else class="settings-fields">
     <v-header :breadcrumb="breadcrumb" :icon-link="`/settings/collections`" icon-color="warning">
       <template slot="buttons">
         <v-header-button
-          icon="delete_outline"
           key="delete"
+          icon="delete_outline"
           color="gray"
           hover-color="danger"
           :label="$t('delete')"
           @click="confirmRemove = true"
         />
         <v-header-button
-          icon="check"
           key="save"
+          icon="check"
           color="action"
           :loading="saving"
           :disabled="Object.keys(edits).length === 0"
@@ -24,7 +24,7 @@
     </v-header>
 
     <label class="label">{{ $t("fields") }}</label>
-    <v-notice color="warning">{{ $t("fields_are_saved_instantly") }}</v-notice>
+    <v-notice color="warning" icon="warning">{{ $t("fields_are_saved_instantly") }}</v-notice>
     <div class="table">
       <div class="header">
         <div class="row">
@@ -35,64 +35,44 @@
       </div>
       <div class="body" :class="{ dragging }">
         <draggable v-model="fields" @start="startSort" @end="saveSort">
-          <div class="row" v-for="field in fields" :key="field.field">
+          <div v-for="field in fields" :key="field.field" class="row">
             <div class="drag"><v-icon name="drag_handle" /></div>
-            <div class="inner row" @click.stop="startEditingField(field)">
+            <div
+              class="inner row"
+              :style="{ cursor: field.interface ? 'inherit' : 'default' }"
+              @click.stop="field.interface ? startEditingField(field) : false"
+            >
               <div>
                 {{ $helpers.formatTitle(field.field) }}
-                <span class="optional" v-if="field.required === false && !field.primary_key">
-                  — {{ $t("optional") }}
-                </span>
               </div>
               <div>
                 {{
-                  ($store.state.extensions.interfaces[field.interface] &&
-                    $store.state.extensions.interfaces[field.interface].name) ||
-                    "--"
+                  $store.state.extensions.interfaces[field.interface] &&
+                    $store.state.extensions.interfaces[field.interface].name
                 }}
+                <v-button
+                  v-if="!field.interface"
+                  class="not-managed"
+                  :loading="toManage.includes(field.field)"
+                  @click="manageField(field)"
+                >
+                  {{ $t("manage") }}
+                </v-button>
               </div>
             </div>
-            <v-popover
+            <v-contextual-menu
+              v-if="canDuplicate(field.interface) || fields.length > 1"
               class="more-options"
               placement="left-start"
-              v-if="canDuplicate(field.interface) || fields.length > 1"
-            >
-              <button type="button" class="menu-toggle">
-                <v-icon name="more_vert" />
-              </button>
-              <template slot="popover">
-                <ul class="ctx-menu">
-                  <li>
-                    <button
-                      v-close-popover
-                      type="button"
-                      @click.stop="duplicateField(field)"
-                      :disabled="!canDuplicate(field.interface)"
-                    >
-                      <v-icon name="control_point_duplicate" />
-                      {{ $t("duplicate") }}
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      v-close-popover
-                      :disabled="fields.length === 1"
-                      type="button"
-                      @click.stop="warnRemoveField(field.field)"
-                    >
-                      <v-icon name="close" />
-                      {{ $t("delete") }}
-                    </button>
-                  </li>
-                </ul>
-              </template>
-            </v-popover>
+              :options="fieldOptions(field)"
+              @click="fieldOptionsClicked(field, $event)"
+            ></v-contextual-menu>
           </div>
         </draggable>
       </div>
     </div>
 
-    <v-button @click="startEditingField({})" class="new-field">
+    <v-button class="new-field" @click="startEditingField({})">
       {{ $t("new_field") }}
     </v-button>
 
@@ -104,7 +84,7 @@
       @stage-value="stageValue"
     />
 
-    <portal to="modal" v-if="confirmRemove">
+    <portal v-if="confirmRemove" to="modal">
       <v-confirm
         color="danger"
         :message="$t('delete_collection_are_you_sure')"
@@ -114,7 +94,7 @@
       />
     </portal>
 
-    <portal to="modal" v-if="confirmFieldRemove">
+    <portal v-if="confirmFieldRemove" to="modal">
       <v-confirm
         color="danger"
         :message="$t('delete_field_are_you_sure', { field: fieldToBeRemoved })"
@@ -144,6 +124,7 @@
 </template>
 
 <script>
+import { datatypes } from "../../type-map";
 import { keyBy } from "lodash";
 import formatTitle from "@directus/format-title";
 import shortid from "shortid";
@@ -154,7 +135,7 @@ import VFieldSetup from "../../components/field-setup.vue";
 import VFieldDuplicate from "../../components/field-duplicate.vue";
 
 export default {
-  name: "settings-fields",
+  name: "SettingsFields",
   metaInfo() {
     return {
       title: `${this.$t("settings")} | ${this.$t("editing", {
@@ -175,6 +156,7 @@ export default {
   },
   data() {
     return {
+      toManage: [],
       duplicateInterfaceBlacklist: [
         "primary-key",
         "many-to-many",
@@ -244,6 +226,25 @@ export default {
     }
   },
   methods: {
+    manageField(field) {
+      this.toManage.push(field.field);
+      const databaseVendor = this.$store.state.serverInfo.databaseVendor;
+      const suggestedInterface = datatypes[databaseVendor][field.datatype].fallbackInterface;
+      const fieldInfo = {
+        field: field.field,
+        sort: field.sort,
+        interface: suggestedInterface
+      };
+      const result = {
+        fieldInfo,
+        relation: null
+      };
+      this.setFieldSettings(result).then(async () => {
+        await this.$store.dispatch("getCollections");
+        field.interface = suggestedInterface;
+        this.toManage.splice(this.toManage.indexOf(field.field), 1);
+      });
+    },
     remove() {
       const id = this.$helpers.shortid.generate();
       this.$store.dispatch("loadingStart", { id });
@@ -312,6 +313,9 @@ export default {
       this.$set(this.edits, field, value);
     },
     canDuplicate(fieldInterface) {
+      if (!fieldInterface) {
+        return false;
+      }
       return this.duplicateInterfaceBlacklist.includes(fieldInterface) === false;
     },
     duplicateFieldSettings({ fieldInfo, collection }) {
@@ -357,112 +361,114 @@ export default {
           });
         });
     },
-    setFieldSettings({ fieldInfo, relation }) {
+
+    async setFieldSettings({ fieldInfo, relation }) {
       this.fieldSaving = true;
 
       const existingField = this.$store.state.collections[this.collection].fields.hasOwnProperty(
         fieldInfo.field
       );
 
-      const requests = [];
-
       const id = this.$helpers.shortid.generate();
       this.$store.dispatch("loadingStart", { id });
 
-      if (existingField) {
-        requests.push(this.$api.updateField(this.collection, fieldInfo.field, fieldInfo));
-      } else {
-        delete fieldInfo.id;
-        fieldInfo.collection = this.collection;
-        requests.push(this.$api.createField(this.collection, fieldInfo));
-      }
+      try {
+        if (existingField) {
+          const { data: savedFieldInfo } = await this.$api.updateField(
+            this.collection,
+            fieldInfo.field,
+            fieldInfo
+          );
 
-      if (relation) {
-        const saveRelation = relation => {
-          const existingRelation = relation && relation.id != null;
-          if (existingRelation) {
-            requests.push(this.$api.updateRelation(relation.id, relation));
-          } else {
-            delete relation.id;
-            requests.push(this.$api.createRelation(relation));
-          }
-        };
-
-        if (Array.isArray(relation)) {
-          relation.forEach(saveRelation);
-        } else {
-          saveRelation(relation);
-        }
-      }
-
-      return Promise.all(requests)
-        .then(([fieldRes, relationRes]) => ({
-          savedFieldInfo: fieldRes.data,
-          savedRelationInfo: relationRes && relationRes.data
-        }))
-        .then(({ savedFieldInfo, savedRelationInfo }) => {
-          this.$store.dispatch("loadingFinished", id);
-
-          if (existingField) {
-            this.fields = this.fields.map(field => {
-              if (field.id === savedFieldInfo.id) return savedFieldInfo;
-              return field;
-            });
-
-            this.$notify({
-              title: this.$t("field_updated", {
-                field: this.$helpers.formatTitle(fieldInfo.field)
-              }),
-              color: "green",
-              iconMain: "check"
-            });
-
-            this.$store.dispatch("getCollections");
-          } else {
-            this.fields = [...this.fields, savedFieldInfo];
-
-            this.$notify({
-              title: this.$t("field_created", {
-                field: this.$helpers.formatTitle(fieldInfo.field)
-              }),
-              color: "green",
-              iconMain: "check"
-            });
-
-            this.$store.dispatch("getCollections");
-          }
-
-          if (relation) {
-            const saveRelation = relation => {
-              const existingRelation = relation && relation.id != null;
-              if (existingRelation) {
-                this.$store.dispatch("updateRelation", savedRelationInfo);
-              } else {
-                this.$store.dispatch("addRelation", savedRelationInfo);
-              }
-            };
-
-            if (Array.isArray(relation)) {
-              relation.forEach(saveRelation);
-            } else {
-              saveRelation(relation);
-            }
-          }
-        })
-        .then(() => {
-          this.editingField = false;
-          this.fieldBeingEdited = null;
-        })
-        .catch(error => {
-          this.$store.dispatch("loadingFinished", id);
-          this.$events.emit("error", {
-            notify: this.$t("something_went_wrong_body"),
-            error
+          this.fields = this.fields.map(field => {
+            if (field.id === savedFieldInfo.id) return savedFieldInfo;
+            return field;
           });
-        })
-        .finally(() => {
-          this.fieldSaving = false;
+
+          this.$notify({
+            title: this.$t("field_updated", {
+              field: this.$helpers.formatTitle(fieldInfo.field)
+            }),
+            color: "green",
+            iconMain: "check"
+          });
+        } else {
+          const { data: savedFieldInfo } = await this.$api.createField(this.collection, fieldInfo);
+
+          this.fields = [...this.fields, savedFieldInfo];
+
+          this.$notify({
+            title: this.$t("field_created", {
+              field: this.$helpers.formatTitle(fieldInfo.field)
+            }),
+            color: "green",
+            iconMain: "check"
+          });
+        }
+
+        this.$store.dispatch("getCollections");
+
+        if (relation) {
+          const saveRelation = async relation => {
+            const existingRelation = relation && relation.id != null;
+
+            if (existingRelation) {
+              const { data: updatedRelation } = await this.$api.updateRelation(
+                relation.id,
+                relation
+              );
+              this.$store.dispatch("updateRelation", updatedRelation);
+            } else {
+              const { data: newRelation } = await this.$api.createRelation(relation);
+              this.$store.dispatch("addRelation", newRelation);
+            }
+          };
+
+          if (Array.isArray(relation)) {
+            for (let relationInfo of relation) {
+              saveRelation(relationInfo);
+            }
+          } else {
+            saveRelation(relation);
+          }
+        }
+
+        this.editingField = false;
+        this.fieldBeingEdited = null;
+        this.fieldSaving = false;
+        this.$store.dispatch("loadingFinished", id);
+      } catch (error) {
+        this.fieldSaving = false;
+        this.$store.dispatch("loadingFinished", id);
+        this.$events.emit("error", {
+          notify: this.$t("something_went_wrong_body"),
+          error
         });
+      }
+    },
+    fieldOptions(field) {
+      return [
+        {
+          text: this.$t("duplicate"),
+          icon: "control_point_duplicate",
+          disabled: this.duplicateInterfaceBlacklist.includes(field.interface)
+        },
+        {
+          text: this.$t("delete"),
+          icon: "delete_outline"
+        }
+      ];
+    },
+    fieldOptionsClicked(field, option) {
+      switch (option) {
+        case 0:
+          this.duplicateField(field);
+          break;
+        case 1:
+          this.warnRemoveField(field.field);
+          break;
+        default:
+      }
     },
     duplicateField(field) {
       this.fieldBeingDuplicated = field;
@@ -638,7 +644,7 @@ h2 {
       padding: 5px 5px;
 
       &:not(.drag):not(.more-options) {
-        flex-basis: 200px;
+        flex-basis: 260px;
       }
     }
   }
@@ -773,6 +779,27 @@ label.label {
         color: var(--darkest-gray);
         transition: none;
       }
+    }
+  }
+}
+
+button {
+  &.not-managed {
+    padding: 5px 10px;
+    border-radius: var(--border-radius);
+    background-color: var(--darker-gray);
+    color: var(--white);
+
+    min-width: auto;
+    height: auto;
+    font-size: 14px;
+    line-height: 1.3;
+    font-weight: 200;
+    border: 0;
+
+    &:hover {
+      background-color: var(--darkest-gray);
+      color: var(--white);
     }
   }
 }

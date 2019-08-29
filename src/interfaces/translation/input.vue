@@ -5,7 +5,7 @@
       {{ $t("interfaces-translation-translation_not_setup") }}
     </p>
   </div>
-  <div v-else-if="languages && languages.length === 0" class="translation error">
+  <div v-else-if="!languages || languages.length === 0" class="translation error">
     <p>
       <v-icon name="warning" />
       {{ $t("interfaces-translation-translation_no_languages") }}
@@ -13,8 +13,8 @@
   </div>
   <div v-else-if="activeLanguage" class="translation">
     <v-simple-select
-      class="language-select"
       v-model="activeLanguage"
+      class="language-select"
       :placeholder="$t('interfaces-translation-choose_language')"
     >
       <option v-for="language in languages" :key="language.code" :value="language.code">
@@ -25,12 +25,13 @@
     <hr />
 
     <v-form
-      class="form"
       :key="activeLanguage"
+      ref="form"
+      class="form"
       :fields="relatedFields"
       :values="langValue"
-      :collection="relation.collection_many"
-      ref="form"
+      :collection="relation.collection_many.collection"
+      :new-item="isNew"
       @stage-value="stageValue"
     />
   </div>
@@ -53,7 +54,7 @@ export default {
       return false;
     },
     primaryKeyField() {
-      return this.$lodash.find(this.fields, { primary_key: true }).field;
+      return _.find(this.fields, { primary_key: true }).field;
     },
     primaryKey() {
       return this.values[this.primaryKeyField];
@@ -72,9 +73,21 @@ export default {
 
       return this.valuesByLang[this.activeLanguage] || {};
     },
+    isNew() {
+      return this.valuesByLang[this.activeLanguage] !== undefined;
+    },
     valuesByLang() {
       if (!this.value) return {};
-      return this.$lodash.keyBy(this.value, this.options.translationLanguageField);
+
+      let firstKey = this.options.translationLanguageField;
+      let secondKey = this.options.languagesPrimaryKeyField;
+      return _(this.value)
+        .map(v => {
+          v[firstKey] = v[firstKey][secondKey] || v[firstKey];
+          return v;
+        })
+        .keyBy(this.options.translationLanguageField)
+        .value();
     },
     fieldManyName() {
       return this.relation.field_many.field;
@@ -105,7 +118,7 @@ export default {
           this.activeLanguage =
             this.options.defaultLanguage ||
             languages[0][
-              this.$lodash.find(this.languageFields, {
+              _.find(this.languageFields, {
                 primary_key: true
               }).field
             ];
@@ -133,7 +146,11 @@ export default {
             ];
       } else {
         newValue = this.value.map(translation => {
-          if (translation[this.options.translationLanguageField] === this.activeLanguage) {
+          let language = translation[this.options.translationLanguageField];
+          if (
+            language === this.activeLanguage ||
+            language[this.options.languagesPrimaryKeyField] === this.activeLanguage
+          ) {
             return {
               ...translation,
               [field]: value
@@ -192,5 +209,11 @@ hr {
   margin: 20px 0;
   border: 0;
   border-bottom: 1px dashed var(--lighter-gray);
+}
+
+.form {
+  grid-template-columns:
+    [start] minmax(0, var(--column-width)) [half] minmax(0, var(--column-width))
+    [full];
 }
 </style>

@@ -42,7 +42,7 @@
       "listing_template_comment": "How to display values on the listing layouts.<br>You'll need to prepend the collection name",
       "listing_template_placeholder": "{{movie.name}} — {{member.first_name}}"
     },
-	"fr-FR": {
+	  "fr-FR": {
       "checkboxes_relational": "Case à cocher relationnelle",
       "grid": "Grille",
       "grid_comment": "Nombre d'éléments à afficher dans une ligne",
@@ -51,6 +51,17 @@
       "item_template_placeholder": "{{name}} — {{first_name}}",
       "listing_template": "Liste des modèles",
       "listing_template_comment": "Comment afficher les valeurs sur la mise en page des listes.<br>Vous devrez mettre devant le nom de la collection",
+      "listing_template_placeholder": "{{movie.name}} — {{member.first_name}}"
+    },
+    "tr-TR": {
+      "checkboxes_relational": "İlişkisel Onay Kutusu",
+      "grid": "Izgara",
+      "grid_comment": "Tek bir satırda gösterilecek öge sayısı",
+      "item_template": "Öge Şablonu",
+      "item_template_comment": "Ögenin nasıl gözükeceği",
+      "item_template_placeholder": "{{name}} — {{first_name}}",
+      "listing_template": "Listeleme Şablonu",
+      "listing_template_comment": "Değerlerin listelenirken nasıl gözükeceği<br>Koleksiyon ismini kullanmanız gerekmektedir.",
       "listing_template_placeholder": "{{movie.name}} — {{member.first_name}}"
     }
   }

@@ -1,8 +1,8 @@
 <template>
   <v-input
+    :id="name"
     type="text"
     class="interface-datetime"
-    :id="name"
     :name="name"
     :min="options.min"
     :max="options.max"
@@ -72,9 +72,7 @@ export default {
   },
   methods: {
     updateValue(value) {
-      if (!value) return;
-
-      if (value.length === 0) return this.$emit("input", null);
+      if (!value || value.length === 0) return this.$emit("input", null);
 
       if (value.length === 19) {
         const dbValue = format(parse(value, this.format, new Date()), "yyyy-MM-dd HH:mm:ss");

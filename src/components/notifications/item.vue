@@ -16,7 +16,7 @@
 import { mapMutations } from "vuex";
 import { REMOVE_NOTIFICATION } from "@/store/mutation-types";
 export default {
-  name: "v-item",
+  name: "VItem",
   props: {
     item: {
       type: Object,
@@ -107,15 +107,15 @@ export default {
 }
 
 .icon-right {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   margin-left: auto;
   color: var(--lighter-gray);
   transition: color var(--fast) var(--transition);
   cursor: pointer;
 
   &:hover {
-    color: var(--light-gray);
+    color: var(--dark-gray);
   }
 }
 

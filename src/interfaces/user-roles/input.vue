@@ -1,7 +1,7 @@
 <template>
   <v-select
-    icon="perm_identity"
     :id="name"
+    icon="perm_identity"
     :name="name"
     :placeholder="$t('choose_one')"
     :options="selectOptions"
@@ -14,8 +14,8 @@
 import mixin from "@directus/extension-toolkit/mixins/interface";
 
 export default {
+  name: "InterfaceUserRole",
   mixins: [mixin],
-  name: "interface-user-role",
   data() {
     return {
       loading: false,
@@ -28,7 +28,11 @@ export default {
       const options = {};
 
       this.roles
-        .filter(role => role.id !== 2) // 2 = public role
+        .filter(role => {
+          if (this.options.showPublic) return true;
+
+          return role.id !== 2;
+        }) // 2 = public role
         .forEach(role => {
           options[role.id] = role.name;
         });

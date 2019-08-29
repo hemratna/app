@@ -1,7 +1,7 @@
 {
   "name": "$t:password",
   "version": "1.0.1",
-  "types": ["string"],
+  "types": ["hash", "string"],
   "icon": "security",
   "recommended": {
     "length": 100

@@ -18,10 +18,10 @@
 import Day from "./Day.vue";
 
 export default {
-  props: ["month", "items"],
   components: {
     Day
   },
+  props: ["month", "items"],
   data() {
     return {
       innerHeight: window.innerHeight
@@ -46,6 +46,17 @@ export default {
       return date.getDate();
     }
   },
+  created() {
+    this.updateHeight = _.throttle(this.updateHeight, 100);
+    window.addEventListener("resize", () => {
+      this.updateHeight();
+    });
+  },
+  destroyed() {
+    window.removeEventListener("resize", () => {
+      this.updateHeight();
+    });
+  },
 
   methods: {
     events(index) {
@@ -60,7 +71,7 @@ export default {
 
     renderWeek(index) {
       if (index < 8) {
-        return this.$t("layouts-calendar-weeks." + this.$parent.weekNames[index - 1]);
+        return this.$t("weeks." + this.$parent.weekNames[index - 1]);
       } else {
         return null;
       }
@@ -99,17 +110,6 @@ export default {
     updateHeight() {
       this.innerHeight = window.innerHeight;
     }
-  },
-  created() {
-    this.updateHeight = this.$lodash.throttle(this.updateHeight, 100);
-    window.addEventListener("resize", () => {
-      this.updateHeight();
-    });
-  },
-  destroyed() {
-    window.removeEventListener("resize", () => {
-      this.updateHeight();
-    });
   }
 };
 </script>

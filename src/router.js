@@ -11,6 +11,7 @@ import Items from "./routes/items.vue";
 import FileLibrary from "./routes/file-library.vue";
 import Item from "./routes/item.vue";
 import Login from "./routes/login.vue";
+import TFAActivation from "./routes/2fa-activation.vue";
 import NotFound from "./routes/not-found.vue";
 import Interfaces from "./routes/settings/interfaces.vue";
 import InterfaceDebugger from "./routes/settings/interface-debugger.vue";
@@ -37,6 +38,16 @@ const base =
 const router = new Router({
   mode: routerMode || "hash",
   base: base || "/",
+  // Make sure that the page is scrolled to the top on navigation
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      // If the scroll position is saved from the previous route (eg back and forth buttons in the
+      // browser, use those positions instead).
+      return savedPosition;
+    } else {
+      return { x: 0, y: 0 };
+    }
+  },
   routes: [
     {
       path: "/modals",
@@ -116,10 +127,6 @@ const router = new Router({
             })
           );
       }
-    },
-    {
-      path: "/collections/directus_files",
-      redirect: "/files"
     },
     {
       path: "/files",
@@ -207,6 +214,13 @@ const router = new Router({
       }
     },
     {
+      path: "/2fa-activation",
+      component: TFAActivation,
+      meta: {
+        publicRoute: true
+      }
+    },
+    {
       path: "/logout",
       beforeEnter(to, from, next) {
         store.dispatch("logout");
@@ -228,14 +242,21 @@ router.beforeEach((to, from, next) => {
   store.commit(TOGGLE_INFO, false);
 
   if (loggedIn === false) {
+    if (to.path === "/2fa-activation") {
+      return next();
+    }
+
     if (publicRoute) {
       return next();
     }
 
-    if (from.fullPath === "/") {
+    //This check prevents the default redirect query parameter which is "/collections"
+    if (from.fullPath === "/" && to.redirectedFrom === "/") {
       return next({ path: "/login" });
     }
 
+    //If user tried to open the private route and not logged in.
+    //Save the path in query as to 'redirect'
     return next({
       path: "/login",
       query: { redirect: to.fullPath }
@@ -257,8 +278,12 @@ router.beforeEach((to, from, next) => {
 });
 
 router.afterEach((to, from) => {
-  if (store.state.hydrating === false && from.path !== "/logout") {
-    store.dispatch("track", { page: to.path });
+  // Prevent tracking if not logged in
+  if (store.state.hydrated && api.loggedIn === true) {
+    const pathsToIgnore = ["/2fa-activation", "/logout", "/login"];
+    if (!pathsToIgnore.includes(to.path)) {
+      store.dispatch("track", { page: to.path });
+    }
   }
 });
 

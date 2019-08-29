@@ -61,6 +61,10 @@ export function getCurrentUser({ commit }) {
 export function track({ commit, state }, { page }) {
   const currentUserID = state.currentUser.id;
 
+  if (!currentUserID) {
+    return;
+  }
+
   const data = {
     last_page: page
   };

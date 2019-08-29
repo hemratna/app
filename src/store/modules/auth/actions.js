@@ -16,6 +16,7 @@ import {
   SWITCH_PROJECT
 } from "../../mutation-types";
 import { stopPolling } from "../../../polling";
+import { tokenPayload } from "./getters";
 
 const config = window.__DirectusConfig__; // eslint-disable-line
 const urls = config
@@ -64,6 +65,11 @@ export function login({ commit }, credentials) {
       persist: true
     })
     .then(info => {
+      let payload = tokenPayload(info);
+      if (payload.needs2FA === true) {
+        throw { code: 113, message: "2FA enforced but not enabled by user", token: info.token };
+      }
+
       commit(LOGIN_SUCCESS, {
         ...info,
         projectName:

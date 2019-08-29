@@ -2,7 +2,6 @@
   <div class="v-avatar">
     <div
       :style="{
-        // borderColor: `var(--${color})`,
         width: `${size}px`,
         height: `${size}px`
       }"
@@ -24,7 +23,7 @@
 
 <script>
 export default {
-  name: "v-avatar",
+  name: "VAvatar",
   props: {
     src: {
       type: String,
@@ -40,7 +39,7 @@ export default {
     },
     color: {
       type: String,
-      default: "accent"
+      default: "success"
     },
     size: {
       type: Number,
@@ -53,15 +52,15 @@ export default {
       error: false
     };
   },
+  watch: {
+    src() {
+      this.error = false;
+    }
+  },
   methods: {
     onImageLoadingError(error) {
       this.error = error;
       this.loading = false;
-    }
-  },
-  watch: {
-    src() {
-      this.error = false;
     }
   }
 };
@@ -73,9 +72,8 @@ export default {
 }
 
 .wrapper {
-  border-radius: 50%;
-  border: 2px solid var(--lighter-gray);
-  background-color: var(--white);
+  border-radius: var(--border-radius);
+  background-color: var(--lightest-gray);
   height: 100%;
   width: 100%;
   position: relative;
@@ -93,18 +91,17 @@ i {
   left: 0;
   right: 0;
   top: 50%;
-  transform: translateY(-55%);
+  transform: translateY(-50%);
   color: var(--lighter-gray);
   text-align: center;
 }
 
 .indicator {
   position: absolute;
-  bottom: 3%;
-  right: 3%;
+  bottom: 4px;
+  right: 4px;
   border-radius: 50%;
-  border: 2px solid white;
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
 }
 </style>

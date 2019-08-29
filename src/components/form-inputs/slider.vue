@@ -12,23 +12,26 @@
         @input="$emit('input', Number($event.target.value))"
       />
       <div ref="track" class="track-wrapper">
-        <div :style="{ transform: `scaleX(${progress})` }" class="track-fill" />
+        <div :style="{ width: progress * 100 + '%' }" class="track-fill" />
+      </div>
+      <div class="output-container">
+        <output
+          :for="id"
+          :class="{
+            'output-shown': alwaysShowOutput
+          }"
+          :style="{ left: progress * 100 + '%' }"
+        >
+          {{ valueOrDefault }} {{ unit }}
+        </output>
       </div>
     </div>
-    <output
-      :for="id"
-      :class="{
-        'output-shown': alwaysShowOutput
-      }"
-    >
-      {{ valueOrDefault }} {{ unit }}
-    </output>
   </div>
 </template>
 
 <script>
 export default {
-  name: "v-slider",
+  name: "VSlider",
   props: {
     id: {
       type: String,
@@ -85,11 +88,9 @@ export default {
 
   .input {
     transition: border-color var(--fast) var(--transition);
-    padding: 16px;
-    border: var(--input-border-width) solid var(--lighter-gray);
-    border-radius: var(--border-radius);
+    padding: 12px 0;
+    border-radius: 4px;
     background-color: var(--white);
-    height: 40px;
 
     flex-grow: 1;
     flex-shrink: 0;
@@ -107,18 +108,19 @@ export default {
   .track-wrapper {
     height: 4px;
     width: 100%;
-    border-radius: 3px;
-    overflow: hidden;
+    border-radius: 4px;
     pointer-events: none;
     user-select: none;
     position: relative;
 
     .track-fill {
+      position: absolute;
       background-color: var(--darkest-gray);
+      border-radius: 4px;
       width: 100%;
       height: 100%;
-      transform-origin: left;
-      transform: scaleX(0);
+      left: 0;
+      width: 0;
     }
   }
 
@@ -139,7 +141,7 @@ export default {
       background: var(--lighter-gray);
       box-shadow: none;
       border: none;
-      border-radius: 3px;
+      border-radius: 4px;
     }
 
     &::-webkit-slider-thumb {
@@ -178,24 +180,48 @@ export default {
       border: 0;
     }
   }
-
+  .output-container {
+    position: relative;
+    margin-right: 14px;
+    margin-top: 2px;
+    height: 28px;
+  }
   output {
+    transition: opacity var(--fast) var(--transition);
     position: absolute;
-    left: calc(100% + 10px);
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--darkest-gray);
+    display: inline-block;
+    white-space: nowrap;
+    top: 0;
+    margin-left: 7px;
+    text-align: center;
+    transform: translateX(-50%);
+    color: var(--white);
+    background-color: var(--darkest-gray);
+    border-radius: var(--border-radius);
+    padding: 4px 8px;
     opacity: 0;
-    transition: var(--fast) var(--transition-out);
+    user-select: none;
+    z-index: 2;
+    &:before {
+      content: "";
+      position: absolute;
+      top: -4px;
+      left: calc(50%);
+      width: 10px;
+      height: 10px;
+      border-radius: var(--border-radius);
+      transform: translateX(-50%) rotate(45deg);
+      background-color: var(--darkest-gray);
+    }
     &.output-shown {
       opacity: 1;
     }
   }
 
-  .input:hover ~ output,
-  .input:active ~ output,
-  .user-is-tabbing .input:focus ~ output,
-  .user-is-tabbing .input:focus-within ~ output {
+  .input:hover output,
+  .input:active output,
+  .user-is-tabbing .input:focus output,
+  .user-is-tabbing .input:focus-within output {
     opacity: 1;
     transition: var(--fast) var(--transition-in);
   }

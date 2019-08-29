@@ -1,6 +1,17 @@
 <template>
   <form @submit.prevent>
-    <label for="spacing" class="style-3 required">
+    <label for="spacing" class="style-3" :class="{'required': (viewOptions.date === '__none__')}">
+      {{ $t("layouts-calendar-datetime") }}
+    </label>
+    <v-select
+      id="spacing"
+      :value="viewOptions.datetime || '__none__'"
+      :options="datetimeOptions"
+      class="select"
+      icon="access_time"
+      @input="setOption('datetime', $event)"
+    ></v-select>
+    <label for="spacing" class="style-3" :class="{'required': (viewOptions.datetime === '__none__')}">
       {{ $t("layouts-calendar-date") }}
     </label>
     <v-select
@@ -59,38 +70,47 @@ export default {
   },
   computed: {
     textOptions() {
-      var options = this.$lodash.mapValues(this.fields, info =>
+      var options = _.mapValues(this.fields, info =>
         info.type == "string" || info.type == "integer" ? info.name : null
       );
-      return this.$lodash.pickBy(options, this.$lodash.identity);
+      return _.pickBy(options, _.identity);
     },
     dateOptions() {
-      var options = this.$lodash.mapValues(this.fields, info =>
-        info.type == "date" ? info.name : null
-      );
-      return this.$lodash.pickBy(options, this.$lodash.identity);
+      var options = {
+         __none__: `(${this.$t("dont_show")})`,
+         ..._.mapValues(this.fields, info => (info.type == "date" ? info.name : null))
+      };
+      return _.pickBy(options, _.identity);
+    },
+    datetimeOptions() {
+      var options = {
+        __none__: `(${this.$t("dont_show")})`,
+        ..._.mapValues(this.fields, info => (info.type == "datetime" ? info.name : null))
+      };
+      return _.pickBy(options, _.identity);
     },
     timeOptions() {
       var options = {
         __none__: `(${this.$t("dont_show")})`,
-        ...this.$lodash.mapValues(this.fields, info => (info.type == "time" ? info.name : null))
+        ..._.mapValues(this.fields, info => (info.type == "time" ? info.name : null))
       };
-      return this.$lodash.pickBy(options, this.$lodash.identity);
+      return _.pickBy(options, _.identity);
     },
     colorOptions() {
       var options = {
         __none__: `(${this.$t("dont_show")})`,
-        ...this.$lodash.mapValues(this.fields, info => (info.type == "string" ? info.name : null))
+        ..._.mapValues(this.fields, info => (info.type == "string" ? info.name : null))
       };
-      return this.$lodash.pickBy(options, this.$lodash.identity);
+      return _.pickBy(options, _.identity);
     }
   },
   methods: {
     setOption(option, value) {
-      this.$emit("options", {
-        ...this.viewOptions,
+        this.$emit("options", {
+         ...this.viewOptions,
         [option]: value
       });
+
     }
   }
 };

@@ -1,8 +1,8 @@
 <template>
   <v-textarea
+    :id="name"
     class="textarea"
     :readonly="readonly"
-    :id="name"
     :value="value"
     :placeholder="options.placeholder"
     :rows="+options.rows"
@@ -20,6 +20,7 @@ export default {
 
 <style lang="scss" scoped>
 .textarea {
+  display: block;
   width: 100%;
   max-width: var(--width-x-large);
 }

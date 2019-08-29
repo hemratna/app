@@ -1,7 +1,8 @@
 import Vue from "vue";
 import VueI18n from "vue-i18n";
 
-import enUS, { dateTimeFormats } from "./locales/en-US";
+import enUS from "./en-US/index.json";
+import dateTimeFormats from "./en-US/date-format.json";
 
 Vue.use(VueI18n);
 
@@ -36,7 +37,7 @@ function setI18nLanguage(lang) {
  * @param {string} lang The language to change to
  * @returns {Promise<string>} The language that was passed
  */
-export function loadLanguageAsync(lang) {
+export async function loadLanguageAsync(lang) {
   if (typeof lang === "undefined") {
     return;
   }
@@ -45,14 +46,16 @@ export function loadLanguageAsync(lang) {
       // route level code-splitting
       // this generates a separate chunk (lang-[request].[hash].js) for this route
       // which is lazy-loaded when the route is visited.
-      return import(/* webpackChunkName: "lang-[request]" */ `@/lang/locales/${lang}`).then(
-        msgs => {
-          i18n.setLocaleMessage(lang, msgs.default);
-          i18n.setDateTimeFormat(lang, msgs.dateTimeFormats);
-          loadedLanguages.push(lang);
-          return setI18nLanguage(lang);
-        }
+      const msgs = await import(
+        /* webpackChunkName: "lang-[request]" */ `@/lang/${lang}/index.json`
       );
+      const dateTimeFormats = await import(
+        /* webpackChunkName: "date-[request]" */ `@/lang/${lang}/date-format.json`
+      );
+      i18n.setLocaleMessage(lang, msgs);
+      i18n.setDateTimeFormat(lang, dateTimeFormats);
+      loadedLanguages.push(lang);
+      return setI18nLanguage(lang);
     }
     return Promise.resolve(setI18nLanguage(lang));
   }
@@ -61,17 +64,34 @@ export function loadLanguageAsync(lang) {
 
 // Array of available languages in the system
 export const availableLanguages = {
+  "af-ZA": "Afrikaans (South Africa)",
+  "ar-SA": "Arabic (Saudi Arabia)",
+  "ca-ES": "Catalan (Spain)",
   "zh-CN": "Chinese (Simplified)",
   "cs-CZ": "Czech (Czech Republic)",
+  "da-DK": "Danish (Denmark)",
   "nl-NL": "Dutch (Netherlands)",
   "en-US": "English (United States)",
+  "fi-FI": "Finnish (Finland)",
   "fr-FR": "French (France)",
   "de-DE": "German (Germany)",
+  "el-GR": "Greek (Greece)",
+  "he-IL": "Hebrew (Israel)",
+  "hu-HU": "Hungarian (Hungary)",
   "it-IT": "Italian (Italy)",
+  "ja-JP": "Japanese (Japan)",
+  "ko-KR": "Korean (Korea)",
+  "ms-MY": "Malay (Malaysia)",
+  "no-NO": "Norwegian (Norway)",
   "pl-PL": "Polish (Poland)",
   "pt-BR": "Portuguese (Brazil)",
-  "ru-RU": "Russian (Russia)",
-  "ms-MY": "Malay (Malaysia)"
+  "pt-PT": "Portuguese (Portugal)",
+  "ru-RU": "Russian (Russian Federation)",
+  "es-ES": "Spanish (Spain)",
+  "zh-TW": "Taiwanese Mandarin (Taiwan)",
+  "tr-TR": "Turkish (Turkey)",
+  "uk-UA": "Ukrainian (Ukraine)",
+  "vi-VN": "Vietnamese (Vietnam)"
 };
 
 i18n.availableLanguages = availableLanguages;

@@ -1,10 +1,10 @@
 <template>
   <div class="v-upload" :class="{ uploading: Object.keys(files).length > 0, disabled }">
     <input
+      ref="select"
       :disabled="disabled"
       class="select"
       type="file"
-      ref="select"
       :accept="accept"
       :multiple="multiple"
       @change="filesChange($event.target.files)"
@@ -25,12 +25,12 @@
         </p>
       </div>
       <div class="buttons">
-        <form class="embed-input" @submit.prevent="saveEmbed" v-if="embed">
-          <input type="url" :placeholder="$t('embed_placeholder')" v-model="embedLink" />
+        <form v-if="embed" class="embed-input" @submit.prevent="saveEmbed">
+          <input v-model="embedLink" type="url" :placeholder="$t('embed_placeholder')" />
           <button type="submit">Save</button>
         </form>
         <button @click="embed = !embed">
-          <v-icon name="link" v-tooltip="$t('embed')" class="select" />
+          <v-icon v-tooltip="$t('embed')" name="link" class="select" />
         </button>
         <button @click="$refs.select.click()">
           <v-icon
@@ -42,7 +42,7 @@
       </div>
     </div>
     <transition-group tag="ol" name="list">
-      <li class="list-item" v-for="file in files" :key="file.name">
+      <li v-for="file in files" :key="file.id" class="list-item">
         <v-progress-ring
           class="icon"
           :progress="file.progress"
@@ -69,10 +69,10 @@
     </transition-group>
 
     <input
+      ref="drop"
       :disabled="disabled"
       class="drop"
       type="file"
-      ref="drop"
       :accept="accept"
       :multiple="multiple"
       @click.prevent
@@ -85,7 +85,7 @@
 import filesize from "filesize";
 
 export default {
-  name: "v-upload",
+  name: "VUpload",
   props: {
     accept: {
       type: String
@@ -125,6 +125,7 @@ export default {
       const name = this.embedLink.substring(this.embedLink.lastIndexOf("/") + 1);
       this.files = {
         [id]: {
+          id,
           name,
           size: null,
           progress: 0,
@@ -142,6 +143,7 @@ export default {
           const { filesize: size, type, title: name } = data;
           this.files = {
             [id]: {
+              id,
               name,
               size,
               progress: 100,
@@ -198,6 +200,7 @@ export default {
 
       this.files = {
         [id]: {
+          id,
           name,
           size: filesize(size),
           type,
@@ -209,11 +212,12 @@ export default {
 
       this.$api
         .uploadFiles(formData, ({ loaded, total }) => {
-          const progress = Math.round((loaded * 100) / total);
+          const progress = Math.min(Math.round((loaded * 100) / total), 95);
           this.files[id].progress = progress;
         })
         .then(res => res.data)
         .then(res => {
+          this.files[id].progress = 100;
           this.$emit("upload", {
             ...this.files[id],
             data: res
@@ -256,7 +260,7 @@ export default {
 
 .dropzone {
   position: relative;
-  padding: 0;
+  padding: 48px 0;
 
   .buttons {
     position: absolute;

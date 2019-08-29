@@ -59,6 +59,17 @@
       "lineNumber_comment": "Afficher les numéros de ligne",
       "loc": "Aucune ligne de {lang} | Une ligne de {lang} | {count} lignes de {lang}",
       "fill_template": "Remplir avec le modèle"
+    },
+    "tr-TR": {
+      "code": "Kod",
+      "template": "Şablon",
+      "template_comment": "Kullanıcı için bir şablon tanımlayın",
+      "language": "Dil",
+      "language_comment": "Kullanılacak programlama dilini ayarlayın",
+      "lineNumber": "Satır Sayısı",
+      "lineNumber_comment": "Satır sayısını göster",
+      "loc": "{lang} kodu yok | 1 satır {lang} | {count} satır {lang}",
+      "fill_template": "Şablon ile Doldur"
     }
   }
 }

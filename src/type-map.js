@@ -287,5 +287,12 @@ export default {
       datatypes: ["INT"],
       default: "INT"
     }
+  },
+  hash: {
+    description: "fieldtypes.hash",
+    mysql: {
+      datatypes: ["VARCHAR"],
+      default: "VARCHAR"
+    }
   }
 };

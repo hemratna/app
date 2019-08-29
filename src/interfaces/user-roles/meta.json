@@ -10,13 +10,19 @@
       "comment": "$t:relational_comment",
       "interface": "toggle",
       "default": true
+    },
+    "showPublic": {
+      "name": "$t:show_public",
+      "interface": "toggle",
+      "default": false
     }
   },
   "translation": {
     "en-US": {
       "user-roles": "User Role",
       "relational": "Relational",
-      "relational_comment": "Save as M2M value to directus_user_roles"
+      "relational_comment": "Save as M2M value to directus_user_roles",
+      "show_public": "Show public role"
     },
     "fr-FR": {
       "user-roles": "Rôle utilisateur",

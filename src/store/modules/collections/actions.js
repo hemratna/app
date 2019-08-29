@@ -45,10 +45,10 @@ export async function getCollections({ commit }) {
   _.forEach(collections, collection => {
     if (_.isEmpty(collection.translation)) {
       // If translations haven't been setup, we're using the title formatter
-      Object.keys(availableLanguages).forEach(locale => {
-        i18n.mergeLocaleMessage(locale, {
-          [`collections-${collection.collection}`]: formatTitle(collection.collection)
-        });
+      // Languages fall back to en-US when strings are missing, so we only have to generate the locale
+      // messages into en-US.
+      i18n.mergeLocaleMessage("en-US", {
+        [`collections-${collection.collection}`]: formatTitle(collection.collection)
       });
     } else {
       _.forEach(collection.translation, (value, locale) => {
@@ -81,10 +81,10 @@ export async function getCollections({ commit }) {
 
 export function addCollection({ commit }, collection) {
   if (!_.isEmpty(collection.translation)) {
-    _.forEach(collection.translation, (value, locale) => {
-      i18n.mergeLocaleMessage(locale, {
-        [`collections-${collection.collection}`]: value
-      });
+    // Languages fall back to en-US when strings are missing, so we only have to generate the locale
+    // messages into en-US.
+    i18n.mergeLocaleMessage("en-US", {
+      [`collections-${collection.collection}`]: formatTitle(collection.collection)
     });
   } else {
     Object.keys(availableLanguages).forEach(locale => {

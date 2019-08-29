@@ -2,15 +2,16 @@
   <div class="form" :class="{ 'full-width': fullWidth }">
     <v-field
       v-for="field in filteredFields"
-      :class="field.width"
       :key="uniqueID + '-' + field.field"
+      :class="field.width || 'full'"
       :name="uniqueID + '-' + field.field"
       :field="field"
       :fields="fields"
       :values="values"
+      :collection="collection"
       :blocked="batchMode && !activeFields.includes(field.field)"
-      :batchMode="batchMode"
-      :newItem="newItem"
+      :batch-mode="batchMode"
+      :new-item="newItem"
       @activate="activateField"
       @deactivate="deactivateField"
       @stage-value="$emit('stage-value', $event)"
@@ -23,7 +24,7 @@ import VField from "./field.vue";
 import { defaultFull } from "../../store/modules/permissions/defaults";
 
 export default {
-  name: "v-form",
+  name: "VForm",
   components: {
     VField
   },
@@ -35,6 +36,10 @@ export default {
     values: {
       type: Object,
       required: true
+    },
+    collection: {
+      type: String,
+      default: null
     },
     readonly: {
       type: Boolean,
@@ -57,6 +62,12 @@ export default {
       default: false
     }
   },
+  data() {
+    return {
+      // The fields that are actively being edited in batch mode
+      activeFields: []
+    };
+  },
   computed: {
     // Field names should be prefixed by a unique ID per form. There's a possibility that multiple
     // forms are being rendered on the same page, each containing fields with the same name. If we
@@ -70,7 +81,7 @@ export default {
     filteredFields() {
       const readFieldBlacklist = this.permissions.read_field_blacklist || [];
       const writeFieldBlacklist = this.permissions.write_field_blacklist || [];
-      let fields = Object.values(this.fields);
+      let fields = Object.values(_.cloneDeep(this.fields));
 
       // Filter out all the fields that are listed in the field read blacklist
       fields = fields.filter(fieldInfo => {
@@ -132,12 +143,6 @@ export default {
       return fields;
     }
   },
-  data() {
-    return {
-      // The fields that are actively being edited in batch mode
-      activeFields: []
-    };
-  },
   methods: {
     activateField(fieldName) {
       if (!this.batchMode) return;
@@ -157,7 +162,7 @@ export default {
 <style lang="scss" scoped>
 .form {
   --column-width: 300px;
-  --gap-width: 48px 32px;
+  --gap-width: 36px 32px;
 
   @media (min-width: 1000px) {
     display: grid;
@@ -181,6 +186,7 @@ export default {
 }
 
 .form > .half,
+.form > .half-left,
 .form > .half-space {
   grid-column: start / half;
 }

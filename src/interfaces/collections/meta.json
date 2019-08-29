@@ -32,7 +32,7 @@
       "include_system": "Include System",
       "include_system_comment": "Include system collections in the options"
     },
-	"fr-FR": {
+	  "fr-FR": {
       "collections": "Collections",
       "placeholder": "Paramètre fictif",
       "placeholder_comment": "Texte statique qui est affiché avant la sélection d'une valeur",
@@ -40,6 +40,15 @@
       "option": "Option",
       "include_system": "Inclure les collections systèmes",
       "include_system_comment": "Inclure les collections systèmes dans les options"
+    },
+    "tr-TR": {
+      "collections": "Koleksiyonlar",
+      "placeholder": "Yer Tutucu",
+      "placeholder_comment": "Bir değer seçilmeden önce gözüken statik metin",
+      "placeholder_default": "Bir koleksiyon seçin",
+      "option": "Seçenek",
+      "include_system": "Sistem Koleksiyonları",
+      "include_system_comment": "Seçenekler içine sistem koleksiyonlarını da dahil eder"
     }
   }
 }

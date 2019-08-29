@@ -13,6 +13,11 @@
       "activity-icon": "Icone d'activité",
       "radius": "Radius",
       "radius-comment": "Le radius de l'icone circulaire, en pixels"
+    },
+    "tr-TR": {
+      "activity-icon": "Aktivite konu",
+      "radius": "Yarıçap",
+      "radius-comment": "İkonun pixel cinsinden yarıçap değeri"
     }
   }
 }

@@ -11,43 +11,33 @@
     "length": 10
   },
   "options": {
-    "viewType": {
-      "name": "$t:view_type",
-      "comment": "$t:view_type_comment",
-      "default": "cards",
-      "interface": "text-input"
+    "fields": {
+      "name": "$t:visible_columns",
+      "comment": "$t:visible_columns_comment",
+      "interface": "text-input",
+      "placeholder": "title",
+      "default": "title"
     },
-    "viewOptions": {
-      "name": "$t:view_options",
-      "comment": "$t:view_options_comment",
-      "interface": "json",
+    "template": {
+      "name": "$t:template",
+      "comment": "$t:template_comment",
+      "interface": "text-input",
       "options": {
-        "language": "application/json"
+        "placeholder": "$t:template_placeholder"
       },
-      "default": {
-        "title": "title",
-        "subtitle": "type",
-        "content": "description",
-        "src": "data"
-      }
+      "default": "{{ title }}"
     },
-    "viewQuery": {
-      "name": "$t:view_query",
-      "comment": "$t:view_query_comment",
-      "interface": "json",
-      "options": {
-        "language": "application/json"
-      },
-      "default": {}
+    "allow_create": {
+      "name": "$t:allow_create",
+      "comment": "$t:allow_create_comment",
+      "interface": "toggle",
+      "default": true
     },
-    "filters": {
-      "name": "$t:filters",
-      "comment": "$t:filters_comment",
-      "interface": "json",
-      "options": {
-        "language": "application/json"
-      },
-      "default": []
+    "allow_select": {
+      "name": "$t:allow_select",
+      "comment": "$t:allow_select_comment",
+      "interface": "toggle",
+      "default": true
     },
     "accept": {
       "name": "$t:accept",
@@ -58,28 +48,32 @@
   "translation": {
     "en-US": {
       "files": "Files",
-      "view_type": "View Type",
-      "view_type_comment": "Select in what way you want to view the files",
-      "view_options": "View Options",
-      "view_options_comment": "Set the view options to use for the files",
-      "view_query": "View Query",
-      "view_query_comment": "Set the view query to use for the files",
-      "filters": "Filters",
-      "filters_comment": "What filters to use",
+      "visible_columns": "Visible Columns",
+      "visible_columns_comment": "Add a CSV of columns you want to display as preview",
+      "preferences": "Listing View Preferences",
+      "preferences_comment": "Set what options to use for the modal",
+      "relation_not_setup": "The relationship hasn't been configured correctly",
+      "template": "Display Template",
+      "template_comment": "Choose how to display values on the item layouts",
+      "template_placeholder": "{{movie.name}} — {{member.first_name}}",
+      "allow_create": "Allow Create",
+      "allow_create_comment": "Allow the user to create a new item from this interface",
+      "allow_select": "Allow Select",
+      "allow_select_comment": "Allow the user to select an existing item",
       "accept": "Accept File Types",
       "accept_comment": "Set a list of MIME types that can be picked",
       "edit_item": "Edit"
     },
 	"fr-FR": {
       "files": "Fichiers",
-      "view_type": "Mode d'affichage",
-      "view_type_comment": "Sélection du mode d'affichage des fichiers",
-      "view_options": "Options d'affichage",
-      "view_options_comment": "Sélection des options d'affichage des fichiers",
-      "view_query": "Requête d'affichage",
-      "view_query_comment": "Sélection de la requête d'affichage des fichierss",
-      "filters": "Filtres",
-      "filters_comment": "Filtres à utiliser",
+      "visible_columns": "Colonnes visibles",
+      "visible_columns_comment": "Ajout d'une liste (SCV) de colonnes à afficher pour la prévisualisation",
+      "preferences": "Liste des préférence de visualisation",
+      "preferences_comment": "Sélectionne les options à utiliser dans la fenêtre",
+      "relation_not_setup": "La relation n'a pas été configurée correctement",
+      "template": "Modèle d'affichage",
+      "template_comment": "Choix de la mise en page des valeurs",
+      "template_placeholder": "{{movie.name}} — {{member.first_name}}",
       "accept": "Type des fichiers acceptés",
       "accept_comment": "Sélection des types MIME autorisés",
       "edit_item": "Mettre à jour"

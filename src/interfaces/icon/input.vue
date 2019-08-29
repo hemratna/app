@@ -7,14 +7,14 @@
       :icon-right="value"
       icon-left="search"
     ></v-input>
-    <div class="icons-view" v-show="searchText.length === 0">
+    <div v-show="searchText.length === 0" class="icons-view">
       <details v-for="(icongroup, groupname) in icons" :key="groupname" open>
         <summary>{{ $helpers.formatTitle(groupname) }}</summary>
         <div>
           <button
             v-for="icon in icongroup"
-            type="button"
             :key="icon"
+            type="button"
             :class="{ active: value === icon }"
             :disabled="readonly"
             @click="$emit('input', value === icon ? null : icon)"
@@ -27,9 +27,9 @@
     <div v-if="searchText.length > 0" class="search-view">
       <button
         v-for="icon in filteredArray"
+        :key="icon"
         v-tooltip="$helpers.formatTitle(icon)"
         type="button"
-        :key="icon"
         :class="{ active: value === icon }"
         :disabled="readonly"
         @click="$emit('input', value === icon ? null : icon)"
@@ -56,7 +56,7 @@ export default {
       return icons;
     },
     iconsArray() {
-      return this.$lodash.flatten(Object.values(this.icons));
+      return _.flatten(Object.values(this.icons));
     },
     filteredArray() {
       return this.iconsArray.filter(icon => icon.includes(this.searchText.toLowerCase()));
@@ -70,13 +70,14 @@ export default {
   display: flex;
   flex-direction: column;
   overflow-y: scroll;
-  height: 334px;
+  height: 344px;
   width: 100%;
   max-width: var(--width-medium);
-  border: var(--input-border-width) solid var(--lighter-gray);
   border-radius: var(--border-radius);
   background-color: white;
   padding: 10px;
+  background-color: var(--off-white);
+  border: var(--input-border-width) solid var(--lightest-gray);
 
   .v-input {
     position: sticky;
@@ -85,7 +86,7 @@ export default {
   }
 
   details {
-    text-transform: uppercase;
+    font-size: 14px;
 
     summary {
       margin: 20px 2px 5px;
@@ -93,7 +94,7 @@ export default {
       color: var(--gray);
 
       &:hover {
-        color: var(--darker-gray);
+        color: var(--darkest-gray);
       }
     }
   }
@@ -101,16 +102,16 @@ export default {
   button {
     padding: 0.5em;
     transition: color var(--fast) var(--transition);
-    color: var(--lighter-gray);
+    color: var(--light-gray);
     max-width: 37px;
 
     &.active {
-      color: var(--darker-gray);
+      color: var(--darkest-gray);
     }
 
     &:hover {
       transition: none;
-      color: var(--dark-gray);
+      color: var(--darker-gray);
     }
   }
   button[disabled="disabled"] {

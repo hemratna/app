@@ -1,7 +1,7 @@
 {
   "name": "$t:hashed",
   "version": "1.0.1",
-  "types": ["string"],
+  "types": ["hash"],
   "icon": "security",
   "recommended": {
     "length": 100

@@ -1,0 +1,41 @@
+{
+  "name": "$t:timeline",
+  "icon": "format_list_bulleted",
+  "translation": {
+    "en-US": {
+      "timeline": "Timeline",
+      "fields": "Fields",
+      "today": "today",
+      "events": "Events",
+      "moreEvents": "and {amount} more...",
+      "noEvents": "no events yet!",
+      "date": "Date",
+      "content": "Content",
+      "title": "Title",
+      "color": "Color"
+    },
+    "de-DE": {
+      "timeline": "Kalendar",
+      "today": "Heute",
+      "events": "Termine",
+      "moreEvents": "und {amount} mehr...",
+      "noEvents": "noch keine Termine!",
+      "date": "Datum",
+      "content": "Inhalt",
+      "title": "Titel",
+      "color": "Farbe"
+    },
+	"fr-FR": {
+      "timeline": "Calendrier",
+      "fields": "Champs",
+      "today": "aujourd'hui",
+      "events": "Evénements",
+      "moreEvents": "et {amount} plus...",
+      "noEvents": "pas encore d'événements positionnés",
+      "date": "Date",
+      "content": "Contenu",
+      "title": "Titre",
+      "color": "Couleur"
+    }
+  }
+}

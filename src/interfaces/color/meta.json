@@ -82,7 +82,7 @@
       "allow_alpha": "Allow alpha",
       "allow_alpha_comment": "Allow values with an alpha channel"
     },
-	"fr-FR": {
+	  "fr-FR": {
       "color": "Couleur",
       "input": "Entrée",
       "input_comment": "L'unité dans laquelle l'utilisateur va saisir ses données",
@@ -96,6 +96,21 @@
       "palette_only_comment": "L'utilisateur ne peut sélectionner des valeurs non contenues dans la palette",
       "allow_alpha": "Autoriser la transparence",
       "allow_alpha_comment": "Autorise des valeurs avec un canal alpha"
+    },
+    "tr-TR": {
+      "color": "Renk",
+      "input": "Girdi",
+      "input_comment": "Kullanıcının gireceği verinin birimi",
+      "output": "Çıktı",
+      "output_comment": "Girilen verinin veri tabanında hangi birimde tutulacağı",
+      "format": "Biçim",
+      "format_comment": "Değerleri renk kartelası olarak göster",
+      "palette": "Palet",
+      "palette_comment": "Renkleri hex değerleri olarak gir",
+      "palette_only": "Sadece Palet",
+      "palette_only_comment": "Kullanıcının sadece renk paleti ile seçim yapmasına izin ver",
+      "allow_alpha": "Alfa",
+      "allow_alpha_comment": "Alfa kanallı değerlere izin ver"
     }
   }
 }

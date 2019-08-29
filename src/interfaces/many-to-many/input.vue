@@ -1,155 +1,127 @@
 <template>
   <div class="interface-many-to-many">
-    <div v-if="relationSetup === false" class="notice">
-      <p>
-        <v-icon name="warning" />
-        {{ $t("interfaces-many-to-many-relation_not_setup") }}
-      </p>
-    </div>
-    <template>
-      <div class="table" v-if="items.length">
+    <v-notice v-if="relationshipSetup === false" color="warning" icon="warning">
+      {{ $t("relationship_not_setup") }}
+    </v-notice>
+
+    <template v-else>
+      <div v-if="items.length" class="table">
         <div class="header">
           <div class="row">
+            <button v-if="sortable" class="sort-column" @click="toggleManualSort">
+              <v-icon name="sort" size="18" :color="manualSortActive ? 'action' : 'light-gray'" />
+            </button>
             <button
-              v-for="column in columns"
+              v-for="field in visibleFields"
+              :key="field.field"
               type="button"
-              class="style-4"
-              :key="column.field"
-              @click="changeSort(column.field)"
+              @click="changeSort(field.field)"
             >
-              {{ column.name }}
+              {{ $helpers.formatTitle(field.field) }}
               <v-icon
-                v-if="sort.field === column.field"
+                v-if="sort.field === field.field"
                 :name="sort.asc ? 'arrow_downward' : 'arrow_upward'"
                 size="16"
               />
             </button>
           </div>
         </div>
-        <div class="body">
+        <draggable
+          v-model="itemsSorted"
+          class="body"
+          handle=".drag-handle"
+          :disabled="!sortable || !manualSortActive"
+          :class="{ dragging, readonly }"
+          @start="dragging = true"
+          @end="dragging = false"
+        >
           <div
-            v-for="item in items"
+            v-for="item in itemsSorted"
+            :key="item[junctionRelatedKey][relatedPrimaryKeyField]"
             class="row"
-            :key="item[junctionPrimaryKey]"
-            @click="editExisting = item"
+            @click="startEdit(item[junctionPrimaryKey])"
           >
-            <div v-for="column in columns" :key="column.field" class="no-wrap">
+            <div v-if="sortable" class="sort-column" :class="{ disabled: !manualSortActive }">
+              <v-icon v-if="!readonly" name="drag_handle" class="drag-handle" />
+            </div>
+            <div v-for="field in visibleFields" :key="field.field">
               <v-ext-display
-                :interface-type="(column.fieldInfo || {}).interface || null"
-                :name="column.field"
-                :type="column.fieldInfo.type"
-                :datatype="column.fieldInfo.datatype"
-                :options="column.fieldInfo.options"
-                :value="item[junctionRelatedKey][column.field]"
+                :interface-type="field.interface"
+                :name="field.field"
+                :type="field.type"
+                :collection="field.collection"
+                :datatype="field.datatype"
+                :options="field.options"
+                :value="item[junctionRelatedKey][field.field]"
               />
             </div>
             <button
-              type="button"
-              class="remove-item"
-              v-tooltip="$t('remove_related')"
-              @click.stop="
-                removeRelated({
-                  junctionKey: item[junctionPrimaryKey],
-                  relatedKey: item[junctionRelatedKey][relatedKey],
-                  item
-                })
-              "
+              v-if="!readonly"
+              class="remove"
+              @click.stop="deleteItem(item[junctionPrimaryKey])"
             >
               <v-icon name="close" />
             </button>
           </div>
-        </div>
+        </draggable>
       </div>
-      <button type="button" class="style-btn select" @click="addNew = true">
-        <v-icon name="add" />
-        {{ $t("add_new") }}
-      </button>
-      <button type="button" class="style-btn select" @click="selectExisting = true">
-        <v-icon name="playlist_add" />
-        <span>{{ $t("select_existing") }}</span>
-      </button>
+
+      <v-notice v-else>{{ $t("no_items_selected") }}</v-notice>
+
+      <div v-if="!readonly" class="buttons">
+        <v-button
+          v-if="options.allow_create"
+          type="button"
+          :disabled="readonly"
+          icon="add"
+          @click="startAddNewItem"
+        >
+          {{ $t("add_new") }}
+        </v-button>
+
+        <v-button
+          v-if="options.allow_select"
+          type="button"
+          :disabled="readonly"
+          icon="playlist_add"
+          @click="selectExisting = true"
+        >
+          {{ $t("select_existing") }}
+        </v-button>
+      </div>
     </template>
 
-    <portal to="modal" v-if="selectExisting">
-      <v-modal
-        :title="$t('select_existing')"
-        :buttons="{
-          save: {
-            text: 'Save',
-            color: 'accent',
-            loading: selectionSaving
-          }
-        }"
-        @close="dismissSelection"
-        @save="saveSelection"
-        action-required
-      >
-        <div class="search">
-          <v-input
-            type="search"
-            :placeholder="$t('search')"
-            class="search-input"
-            @input="onSearchInput"
-          />
-        </div>
-        <v-items
-          class="items"
-          :collection="relatedCollection"
-          :filters="filters"
-          :view-query="viewQuery"
-          :view-type="viewType"
-          :view-options="viewOptions"
-          :selection="selection"
-          @options="setViewOptions"
-          @query="setViewQuery"
-          @select="selection = $event"
-        ></v-items>
-      </v-modal>
-    </portal>
+    <v-item-select
+      v-if="selectExisting"
+      :fields="visibleFieldNames"
+      :collection="relation.junction.collection_one.collection"
+      :filters="[]"
+      :value="stagedSelection || selectionPrimaryKeys"
+      @input="stageSelection"
+      @done="closeSelection"
+      @cancel="cancelSelection"
+    />
 
-    <portal to="modal" v-if="editExisting">
+    <portal v-if="editItem" to="modal">
       <v-modal
-        :title="$t('editing_item')"
+        :title="addNew ? $t('creating_item') : $t('editing_item')"
         :buttons="{
           save: {
-            text: 'Save',
-            color: 'accent',
-            loading: selectionSaving
+            text: $t('save'),
+            color: 'accent'
           }
         }"
-        @close="editExisting = false"
-        @save="saveEdits"
-      >
-        <div class="edit-modal-body">
-          <v-form
-            :fields="relatedCollectionFields"
-            :values="editExisting[junctionRelatedKey]"
-            @stage-value="stageValue"
-          ></v-form>
-        </div>
-      </v-modal>
-    </portal>
-
-    <portal to="modal" v-if="addNew">
-      <v-modal
-        :title="$t('creating_item')"
-        :buttons="{
-          save: {
-            text: 'Save',
-            color: 'accent',
-            loading: selectionSaving
-          }
-        }"
-        @close="addNew = null"
-        @save="addNewItem"
+        @close="closeEditItem"
+        @save="saveEditItem"
       >
         <div class="edit-modal-body">
           <v-form
             new-item
-            :fields="relatedCollectionFields"
-            :values="relatedDefaultsWithEdits"
+            :fields="relation.junction.collection_one.fields"
+            :collection="relation.junction.collection_one.collection"
+            :values="editItem[junctionRelatedKey]"
             @stage-value="stageValue"
-          ></v-form>
+          />
         </div>
       </v-modal>
     </portal>
@@ -158,10 +130,12 @@
 
 <script>
 import mixin from "@directus/extension-toolkit/mixins/interface";
+import { diff } from "deep-object-diff";
+import shortid from "shortid";
 
 export default {
+  name: "InterfaceManyToMany",
   mixins: [mixin],
-  name: "interface-many-to-many",
   data() {
     return {
       sort: {
@@ -170,320 +144,350 @@ export default {
       },
 
       selectExisting: false,
-      selectionSaving: false,
-      selection: [],
-
-      editExisting: null,
+      editItem: false,
       addNew: null,
-      edits: {},
 
-      viewOptionsOverride: {},
-      viewTypeOverride: null,
-      viewQueryOverride: {},
-      filtersOverride: []
+      dragging: false,
+
+      items: null,
+      loading: false,
+      error: null,
+      stagedSelection: null,
+
+      initialValue: _.cloneDeep(this.value) || []
     };
   },
+
   computed: {
-    relationSetup() {
+    // If the relationship has been configured or not
+    relationshipSetup() {
       if (!this.relation) return false;
       return true;
     },
-    currentCollection() {
-      return this.relation.collection_one.collection;
+
+    // The fields that should be rendered in the modal / table
+    visibleFields() {
+      if (this.relationSetup === false) return [];
+      if (!this.options.fields) return [];
+
+      let visibleFieldNames;
+
+      if (Array.isArray(this.options.fields)) {
+        visibleFieldNames = this.options.fields.map(val => val.trim());
+      }
+
+      visibleFieldNames = this.options.fields.split(",").map(val => val.trim());
+
+      // Fields in the related collection (not the JT)
+      const relatedFields = this.relation.junction.collection_one.fields;
+      const recursiveKey = _.get(this.relation, "junction.field_one.field", null);
+
+      return visibleFieldNames.map(name => {
+        const fieldInfo = relatedFields[name];
+
+        if (recursiveKey && name === recursiveKey) {
+          fieldInfo.readonly = true;
+        }
+
+        return fieldInfo;
+      });
     },
-    relatedCollection() {
-      return this.relation.junction.collection_one.collection;
+
+    visibleFieldNames() {
+      return this.visibleFields.map(field => field.field);
     },
-    relatedCollectionFields() {
-      return this.relation.junction.collection_one.fields;
+
+    // The name of the field that holds the primary key in the related (not JT) collection
+    relatedPrimaryKeyField() {
+      return _.find(this.relation.junction.collection_one.fields, { primary_key: true }).field;
     },
-    junctionCollectionFields() {
-      return this.relation.collection_many.fields;
+
+    selectionPrimaryKeys() {
+      return this.items.map(item => item[this.junctionRelatedKey][this.relatedPrimaryKeyField]);
     },
-    relatedKey() {
-      return this.$lodash.find(this.relation.junction.collection_one.fields, {
-        primary_key: true
-      }).field;
+
+    // Field in the junction table that holds the sort value in the junction table
+    sortField() {
+      const junctionTableFields = this.relation.collection_many.fields;
+      const sortField = _.find(junctionTableFields, { type: "sort" });
+      return sortField;
     },
-    junctionPrimaryKey() {
-      return this.$lodash.find(this.relation.collection_many.fields, {
-        primary_key: true
-      }).field;
+
+    // If the items can be manually sorted
+    sortable() {
+      return !!this.sortField;
     },
+
+    manualSortActive() {
+      return this.sort.field === "$manual";
+    },
+
+    // The key in the junction row that holds the data of the related item
     junctionRelatedKey() {
       return this.relation.junction.field_many.field;
     },
 
-    visibleFields() {
-      if (this.relationSetup === false) return [];
-      if (!this.options.fields) return [];
-      return this.options.fields.split(",").map(val => val.trim());
-    },
-    items() {
-      if (this.relationSetup === false) return null;
-
-      return this.$lodash.orderBy(
-        (this.value || [])
-          .filter(val => !val.$delete)
-          .filter(val => val[this.junctionRelatedKey] != null),
-        item => item[this.junctionRelatedKey][this.sort.field],
-        this.sort.asc ? "asc" : "desc"
-      );
-    },
-    columns() {
-      if (this.relationSetup === false) return null;
-
-      return this.visibleFields.map(field => ({
-        fieldInfo: this.relatedCollectionFields[field],
-        field,
-        name: this.$helpers.formatTitle(field)
-      }));
-    },
-    relatedDefaultValues() {
-      if (this.relationSetup === false) return null;
-      if (!this.relatedCollectionFields) return null;
-
-      return this.$lodash.mapValues(this.relatedCollectionFields, field => field.default_value);
-    },
-    relatedDefaultsWithEdits() {
-      if (this.relationSetup === false) return null;
-      if (!this.relatedDefaultValues) return null;
-
-      return {
-        ...this.relatedDefaultValues,
-        ...this.edits
-      };
+    junctionPrimaryKey() {
+      return _.find(this.relation.junction.collection_many.fields, { primary_key: true }).field;
     },
 
-    filters() {
-      if (this.relationSetup === false) return null;
-      return [
-        ...((this.options.preferences && this.options.preferences.filters) || []),
-        ...this.filtersOverride
-      ];
-    },
-    viewOptions() {
-      if (this.relationSetup === false) return null;
-      const viewOptions = (this.options.preferences && this.options.preferences.viewOptions) || {};
-      return {
-        ...viewOptions,
-        ...this.viewOptionsOverride
-      };
-    },
-    viewType() {
-      if (this.relationSetup === false) return null;
-      if (this.viewTypeOverride) return this.viewTypeOverride;
-      return (this.options.preferences && this.options.preferences.viewType) || "tabular";
-    },
-    viewQuery() {
-      if (this.relationSetup === false) return null;
-      const viewQuery = (this.options.preferences && this.options.preferences.viewQuery) || {};
-      return {
-        ...viewQuery,
-        ...this.viewQueryOverride
-      };
-    }
-  },
-  created() {
-    if (this.relationSetup) {
-      this.sort.field = this.visibleFields && this.visibleFields[0];
-      this.setSelection();
-    }
+    itemsSorted: {
+      get() {
+        if (this.sort.field === "$manual") {
+          return _.orderBy(
+            _.cloneDeep(this.items),
+            item => item[this.sortField.field],
+            this.sort.asc ? "asc" : "desc"
+          );
+        }
 
-    this.onSearchInput = this.$lodash.debounce(this.onSearchInput, 200);
-  },
-  watch: {
-    value() {
-      this.setSelection();
-    },
-    relation() {
-      if (this.relationSetup) {
-        this.sort.field = this.visibleFields && this.visibleFields[0];
-        this.setSelection();
+        return _.orderBy(
+          _.cloneDeep(this.items),
+          item => item[this.junctionRelatedKey][this.sort.field],
+          this.sort.asc ? "asc" : "desc"
+        );
+      },
+      set(newValue) {
+        this.items = newValue.map((item, index) => {
+          return {
+            ...item,
+            [this.sortField.field]: index + 1
+          };
+        });
       }
     }
   },
-  methods: {
-    setViewOptions(updates) {
-      this.viewOptionsOverride = {
-        ...this.viewOptionsOverride,
-        ...updates
-      };
-    },
-    setViewQuery(updates) {
-      this.viewQueryOverride = {
-        ...this.viewQueryOverride,
-        ...updates
-      };
-    },
-    setSelection() {
-      if (!this.value) return;
 
-      this.selection = this.value
-        .filter(val => !val.$delete)
-        .filter(val => val[this.junctionRelatedKey] != null)
-        .map(val => val[this.junctionRelatedKey]);
-    },
-    changeSort(field) {
-      if (this.sort.field === field) {
+  watch: {
+    items(value, oldValue) {
+      if (oldValue === null) return;
+      this.emitValue(value);
+    }
+  },
+  created() {
+    if (this.sortable) {
+      this.sort.field = "$manual";
+    } else {
+      // Set the default sort column
+      if (this.visibleFields && this.visibleFields.length > 0) {
+        this.sort.field = this.visibleFields[0].field;
+      }
+    }
+
+    // Set the initial set of items. Filter out any broken junction records
+    this.items = (_.cloneDeep(this.value) || []).filter(item => item[this.junctionRelatedKey]);
+  },
+
+  methods: {
+    // Change the sort position to the provided field. If the same field is
+    // changed, flip the sort order
+    changeSort(fieldName) {
+      if (this.sort.field === fieldName) {
         this.sort.asc = !this.sort.asc;
         return;
       }
 
       this.sort.asc = true;
-      this.sort.field = field;
+      this.sort.field = fieldName;
       return;
     },
-    saveSelection() {
-      this.selectionSaving = true;
 
-      const savedRelatedPKs = (this.value || [])
-        .filter(val => !val.$delete)
-        // Filter out non-existing relationships (eg the related item has been
-        // deleted)
-        .filter(val => val[this.junctionRelatedKey])
-        .map(val => val[this.junctionRelatedKey][this.relatedKey]);
+    startAddNewItem() {
+      this.addNew = true;
 
-      const selectedPKs = this.selection.map(item => item[this.relatedKey]);
+      const relatedCollectionFields = this.relation.junction.collection_one.fields;
+      const defaults = _.mapValues(relatedCollectionFields, field => field.default_value);
+      const tempKey = "$temp_" + shortid.generate();
 
-      // Set $delete: true to all items that aren't selected anymore
-      const newValue = (this.value || []).map(junctionRow => {
-        const relatedPK = (junctionRow[this.junctionRelatedKey] || {})[this.relatedKey];
+      if (defaults.hasOwnProperty(this.relatedPrimaryKeyField))
+        delete defaults[this.relatedPrimaryKeyField];
 
-        if (!relatedPK) return junctionRow;
+      this.items = [
+        ...this.items,
+        {
+          [this.junctionPrimaryKey]: tempKey,
+          [this.junctionRelatedKey]: defaults
+        }
+      ];
 
-        // If item was saved before, add $delete flag
-        if (selectedPKs.includes(relatedPK) === false) {
-          return {
-            [this.junctionPrimaryKey]: junctionRow[this.junctionPrimaryKey],
-            $delete: true
-          };
+      this.startEdit(tempKey);
+    },
+
+    // Save the made edits in the add new item modal
+    stageValue({ field, value }) {
+      this.$set(this.editItem[this.junctionRelatedKey], field, value);
+    },
+
+    toggleManualSort() {
+      this.sort.field = "$manual";
+      this.sort.asc = true;
+    },
+
+    async startEdit(primaryKey) {
+      let values = _.cloneDeep(this.items.find(i => i[this.junctionPrimaryKey] === primaryKey));
+
+      const isNewItem = typeof primaryKey === "string" && primaryKey.startsWith("$temp_");
+
+      // Fetch the values from the DB
+      if (isNewItem === false) {
+        const collection = this.relation.collection_many.collection;
+
+        const res = await this.$api.getItem(collection, primaryKey, { fields: "*.*.*" });
+        const item = res.data;
+
+        values = _.merge({}, item, values);
+      }
+
+      this.editItem = values;
+    },
+
+    saveEditItem() {
+      const primaryKey = this.editItem[this.junctionPrimaryKey];
+
+      this.items = this.items.map(item => {
+        if (item[this.junctionPrimaryKey] === primaryKey) {
+          return this.editItem;
         }
 
-        // If $delete flag is set and the item is re-selected, remove $delete flag
-        if (junctionRow.$delete && selectedPKs.includes(relatedPK)) {
-          const clone = { ...junctionRow };
-          delete clone.$delete;
-          return clone;
-        }
-
-        return junctionRow;
+        return item;
       });
 
-      // Fetch item values for all newly selected items
-      const newSelection = selectedPKs.filter(pk => savedRelatedPKs.includes(pk) === false);
-
-      (newSelection.length > 0
-        ? this.$api.getItem(this.relatedCollection, newSelection.join(","))
-        : Promise.resolve()
-      )
-        .then(res => {
-          if (res) return res.data;
-          return null;
-        })
-        .then(data => {
-          if (data) {
-            if (Array.isArray(data)) {
-              data.forEach(row =>
-                newValue.push({
-                  [this.junctionRelatedKey]: row
-                })
-              );
-            } else {
-              newValue.push({
-                [this.junctionRelatedKey]: data
-              });
-            }
-          }
-
-          this.$emit("input", newValue);
-
-          this.selectExisting = false;
-          this.selectionSaving = false;
-        })
-        .catch(error => {
-          this.$events.emit("error", {
-            notify: this.$t("something_went_wrong_body"),
-            error
-          });
-
-          this.selectionSaving = false;
-          this.selectExisting = false;
-        });
+      this.editItem = null;
     },
-    dismissSelection() {
-      this.setSelection();
+
+    closeEditItem() {
+      //If addNew is true and cancel is clicked, need to remove a last added blank item.
+      if (this.addNew) {
+        this.items.pop();
+      }
+      this.addNew = false;
+      this.editItem = null;
+    },
+
+    stageSelection(primaryKeys) {
+      this.stagedSelection = primaryKeys;
+    },
+
+    async closeSelection() {
+      //When there is no change in selection and user click on done.
+      if (!this.stagedSelection) {
+        this.selectExisting = false;
+        return;
+      }
+
+      const primaryKeys = this.stagedSelection || [];
+
+      // Remove all the items from this.items that aren't selected anymore
+      this.items = this.items.filter(item => {
+        const primaryKey = item[this.junctionRelatedKey][this.relatedPrimaryKeyField];
+        return primaryKeys.includes(primaryKey);
+      });
+
+      // Fetch all the newly selected items so we can render it in the table
+      const itemPrimaryKeys = this.items.map(
+        item => item[this.junctionRelatedKey][this.relatedPrimaryKeyField]
+      );
+      const newlyAddedItems = _.difference(primaryKeys, itemPrimaryKeys);
+
+      if (newlyAddedItems.length > 0) {
+        const res = await this.$api.getItem(
+          this.relation.junction.collection_one.collection,
+          newlyAddedItems.join(","),
+          {
+            fields: "*.*.*"
+          }
+        );
+
+        const items = Array.isArray(res.data) ? res.data : [res.data];
+
+        const newJunctionRecords = items.map(nested => {
+          const tempKey = "$temp_" + shortid.generate();
+
+          return {
+            [this.junctionPrimaryKey]: tempKey,
+            [this.junctionRelatedKey]: nested
+          };
+        });
+
+        this.items = [...this.items, ...newJunctionRecords];
+      }
+
+      this.stagedSelection = null;
       this.selectExisting = false;
     },
-    stageValue({ field, value }) {
-      this.$set(this.edits, field, value);
+
+    cancelSelection() {
+      this.stagedSelection = null;
+      this.selectExisting = null;
     },
-    saveEdits() {
-      this.$emit("input", [
-        ...(this.value || [] || []).map(val => {
-          if (val.id === this.editExisting[this.junctionPrimaryKey]) {
-            return {
-              ...val,
-              [this.junctionRelatedKey]: {
-                ...val[this.junctionRelatedKey],
-                ...this.edits
+
+    deleteItem(primaryKey) {
+      this.items = this.items.filter(jr => {
+        const jrPrimaryKey = jr[this.junctionPrimaryKey];
+        return jrPrimaryKey !== primaryKey;
+      });
+    },
+
+    emitValue(value) {
+      value = _.cloneDeep(value);
+
+      // This is the key in the nested related object that holds the parent item again
+      const recursiveKey = _.get(this.relation, "junction.field_one.field", null);
+
+      const newValue = value
+        .map(after => {
+          const primaryKey = after[this.junctionPrimaryKey];
+
+          // Check if the current item was saved before
+          const before = this.initialValue.find(i => i[this.junctionPrimaryKey] === primaryKey);
+
+          if (before) {
+            const delta = diff(before, after);
+
+            if (Object.keys(delta).length > 0) {
+              const newVal = {
+                [this.junctionPrimaryKey]: primaryKey,
+                [this.junctionRelatedKey]: {
+                  [this.relatedPrimaryKeyField]:
+                    before[this.junctionRelatedKey][this.relatedPrimaryKeyField]
+                }
+              };
+
+              // Just in case there's an edit in the deep-nested recursive copy of the parent item
+              // delete it
+              if (recursiveKey && newVal[this.junctionRelatedKey].hasOwnProperty(recursiveKey)) {
+                delete newVal[this.junctionRelatedKey][recursiveKey];
               }
-            };
+
+              return _.merge({}, newVal, delta);
+            } else {
+              return null;
+            }
           }
 
-          return val;
+          // If the junction item didn't exist before yet:
+          if (
+            typeof after[this.junctionPrimaryKey] === "string" &&
+            after[this.junctionPrimaryKey].startsWith("$temp_")
+          ) {
+            delete after[this.junctionPrimaryKey];
+          }
+
+          return after;
         })
-      ]);
+        .filter(i => i);
 
-      this.edits = {};
-      this.editExisting = false;
-    },
-    addNewItem() {
-      this.$emit("input", [
-        ...(this.value || []),
-        {
-          [this.junctionRelatedKey]: this.edits
-        }
-      ]);
-
-      this.edits = {};
-      this.addNew = false;
-    },
-    removeRelated({ junctionKey, relatedKey, item }) {
-      if (junctionKey) {
-        this.$emit(
-          "input",
-          (this.value || []).map(val => {
-            if (val[this.junctionPrimaryKey] === junctionKey) {
-              return {
-                [this.junctionPrimaryKey]: val[this.junctionPrimaryKey],
-                $delete: true
-              };
-            }
-
-            return val;
-          })
-        );
-      } else if (!junctionKey && !relatedKey) {
-        this.$emit(
-          "input",
-          (this.value || []).filter(val => {
-            return this.$lodash.isEqual(val, item) === false;
-          })
-        );
-      } else {
-        this.$emit(
-          "input",
-          (this.value || []).filter(val => {
-            return (val[this.junctionRelatedKey] || {})[this.relatedKey] !== relatedKey;
-          })
-        );
-      }
-    },
-    onSearchInput(value) {
-      this.setViewQuery({
-        q: value
+      const savedPrimaryKeys = this.initialValue.map(jr => jr[this.junctionPrimaryKey]);
+      const newPrimaryKeys = value.map(jr => jr[this.junctionPrimaryKey]);
+      const deletedKeys = _.difference(savedPrimaryKeys, newPrimaryKeys);
+      const deletedJunctionRows = deletedKeys.map(key => {
+        return {
+          [this.junctionPrimaryKey]: key,
+          $delete: true
+        };
       });
+
+      this.$emit("input", [...newValue, ...deletedJunctionRows]);
     }
   }
 };
@@ -496,7 +500,7 @@ export default {
   border-radius: var(--border-radius);
   border-spacing: 0;
   width: 100%;
-  margin: 10px 0 20px;
+  margin: 16px 0 24px;
 
   .header {
     height: var(--input-height);
@@ -504,22 +508,18 @@ export default {
 
     button {
       text-align: left;
-      color: var(--gray);
+      font-weight: 500;
       transition: color var(--fast) var(--transition);
 
       &:hover {
         transition: none;
         color: var(--darker-gray);
-        i {
-          color: var(--darker-gray);
-        }
       }
     }
 
     i {
-      vertical-align: middle;
+      vertical-align: top;
       color: var(--light-gray);
-      margin-top: -2px;
     }
   }
 
@@ -531,6 +531,7 @@ export default {
     > div {
       padding: 3px 5px;
       flex-basis: 200px;
+      max-width: 200px;
     }
   }
 
@@ -541,6 +542,7 @@ export default {
     & > button {
       padding: 3px 5px 2px;
       flex-basis: 200px;
+      max-width: 200px;
     }
   }
 
@@ -573,56 +575,54 @@ export default {
         }
       }
     }
-  }
-}
 
-button.select {
-  background-color: var(--darker-gray);
-  border-radius: var(--border-radius);
-  height: var(--input-height);
-  padding: 0 10px;
-  display: inline-flex;
-  align-items: center;
-  margin-right: 10px;
-  transition: background-color var(--fast) var(--transition);
-
-  i {
-    margin-right: 5px;
+    &.readonly {
+      pointer-events: none;
+    }
   }
 
-  &:hover {
-    transition: none;
-    background-color: var(--darkest-gray);
-  }
-}
+  .sort-column {
+    flex-basis: 36px !important;
 
-.edit-modal-body {
-  padding: 20px;
-  background-color: var(--body-background);
-}
-
-.search {
-  position: sticky;
-  left: 0;
-  top: 0;
-  &-input {
-    border-bottom: 2px solid var(--lightest-gray);
-    padding: 12px;
-
-    & >>> input {
-      border-radius: 0;
-      border: none;
-      padding-left: var(--page-padding);
-      height: var(--header-height);
-
-      &::placeholder {
-        color: var(--light-gray);
-      }
+    &.disabled i {
+      color: var(--lightest-gray);
+      cursor: not-allowed;
     }
   }
 }
 
-.items {
-  height: calc(100% - var(--header-height) - 1px);
+.drag-handle {
+  cursor: grab;
+}
+
+.dragging {
+  cursor: grabbing !important;
+}
+
+.buttons {
+  margin-top: 24px;
+}
+
+.buttons > * {
+  display: inline-block;
+}
+
+.buttons > *:first-child {
+  margin-right: 24px;
+}
+
+.edit-modal-body {
+  padding: 30px 30px 60px 30px;
+  background-color: var(--body-background);
+  .form {
+    grid-template-columns:
+      [start] minmax(0, var(--column-width)) [half] minmax(0, var(--column-width))
+      [full];
+  }
+}
+
+.remove {
+  position: absolute;
+  right: 10px;
 }
 </style>

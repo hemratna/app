@@ -50,7 +50,7 @@ export function resetState() {
   // the store.replaceState method will make the passed in object reactive.
   // This will make a clone to modify, so the original initialStateCopy stays
   // as-is
-  const newState = Object.assign({}, initialStateCopy);
+  const newState = JSON.parse(JSON.stringify(initialStateCopy));
   newState.auth.projectName = store.state.auth.projectName;
   newState.auth.project = store.state.auth.project;
   newState.auth.url = store.state.auth.url;

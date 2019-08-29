@@ -18,7 +18,7 @@ export default {
 .small-style {
   position: relative;
   margin-top: 60px;
-  padding-top: 6px;
+  padding-top: 8px;
   padding-bottom: 20px;
   h2 {
     position: absolute;
@@ -26,27 +26,24 @@ export default {
     left: 50%;
     transform: translateX(-50%);
 
-    color: var(--dark-gray);
-    font-size: 0.85em;
-    line-height: 1.18;
-    font-weight: 700;
-    text-transform: uppercase;
+    color: var(--darker-gray);
+    font-size: 16px;
+    line-height: 18px;
     background-color: var(--body-background);
-    padding: 0 10px;
+    padding: 0 12px;
   }
   p {
     position: absolute;
-    top: 16px;
+    top: 28px;
     left: 50%;
     transform: translateX(-50%);
     color: var(--light-gray);
-    font-style: italic;
     max-width: 460px;
   }
   hr {
     border: 0;
     background: none;
-    border-bottom: 1px solid var(--lighter-gray);
+    border-bottom: 2px solid var(--lightest-gray);
   }
 }
 
@@ -55,22 +52,21 @@ export default {
   padding-top: 6px;
   padding-bottom: 20px;
   h2 {
-    color: var(--dark-gray);
-    font-size: 1.38em;
-    line-height: 1.16;
+    color: var(--darker-gray);
+    font-size: 22px;
+    line-height: 28px;
     font-weight: 400;
     margin-bottom: 10px;
   }
   p {
     color: var(--light-gray);
-    font-style: italic;
     max-width: 460px;
     margin-top: 6px;
   }
   hr {
     border: 0;
     background: none;
-    border-bottom: 1px solid var(--lighter-gray);
+    border-bottom: 2px solid var(--lightest-gray);
   }
 }
 
@@ -79,22 +75,21 @@ export default {
   padding-top: 6px;
   padding-bottom: 20px;
   h2 {
-    color: var(--dark-gray);
-    font-size: 2em;
-    line-height: 1.16;
+    color: var(--darker-gray);
+    font-size: 28px;
+    line-height: 32px;
     font-weight: 300;
     margin-bottom: 10px;
   }
   p {
     color: var(--light-gray);
-    font-style: italic;
     max-width: 460px;
-    margin-top: 6px;
+    margin-top: 14px;
   }
   hr {
     border: 0;
     background: none;
-    border-bottom: 1px solid var(--lighter-gray);
+    border-bottom: 2px solid var(--lightest-gray);
   }
 }
 </style>

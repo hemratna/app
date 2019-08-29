@@ -25,30 +25,32 @@ import helpers from "./helpers";
 import notify from "./notifications";
 import events from "./events/";
 
-// Create a default config when the config file is missing.
-// This allows the app to work even when no configuration was set
-const defaultConfig = {
-  api: {},
-  allowOtherAPI: true,
-  routerMode: "hash",
-  routerBaseUrl: "/"
-};
-
-window.__DirectusConfig__ = window.__DirectusConfig__ || defaultConfig;
-
 Vue.config.productionTip = false;
 
+// Make lodash globally available under it's common name `_`
+window._ = lodash;
+
 Object.defineProperties(Vue.prototype, {
-  $lodash: { value: lodash },
   $api: { value: api },
   $notify: { value: notify },
-  $axios: { value: axios }
+  $axios: { value: axios },
+
+  // TODO: Remove this in/after 7.4
+  $lodash: {
+    get() {
+      console.warn("[Directus] this.$lodash is deprecated. Use _ instead.");
+      return _;
+    }
+  }
 });
 
 Vue.use(events);
 Vue.use(VTooltip, {
-  defaultDelay: 500,
-  defaultOffset: 2
+  defaultDelay: {
+    show: 500
+  },
+  defaultOffset: 2,
+  autoHide: false
 });
 Vue.use(PortalVue);
 Vue.use(VueTimeago, {

@@ -3,27 +3,33 @@
     <v-card
       v-if="value"
       class="card"
-      :title="value.title"
+      :title="image.title"
       :subtitle="subtitle + subtitleExtra"
       :src="src"
       :icon="icon"
       :href="href"
       :options="{
+        deselect: {
+          text: $t('deselect'),
+          icon: 'clear'
+        },
         remove: {
           text: $t('delete'),
           icon: 'delete'
         }
       }"
-      @remove="$emit('input', null)"
+      big-image
+      @deselect="$emit('input', null)"
+      @remove="removeFile"
     ></v-card>
     <v-upload
       v-else
       small
       :disabled="readonly"
-      class="dropzone"
-      @upload="saveUpload"
+      class="uploader"
       :accept="options.accept"
       :multiple="false"
+      @upload="saveUpload"
     ></v-upload>
 
     <v-button type="button" :disabled="readonly" @click="newFile = true">
@@ -37,23 +43,23 @@
       {{ $t("existing") }}
     </v-button>
 
-    <portal to="modal" v-if="newFile">
+    <portal v-if="newFile" to="modal">
       <v-modal
         :title="$t('file_upload')"
-        @close="newFile = false"
         :buttons="{
           done: {
             text: $t('done')
           }
         }"
+        @close="newFile = false"
       >
         <div class="body">
-          <v-upload @upload="saveUpload" :accept="options.accept" :multiple="false"></v-upload>
+          <v-upload :accept="options.accept" :multiple="false" @upload="saveUpload"></v-upload>
         </div>
       </v-modal>
     </portal>
 
-    <portal to="modal" v-if="existing">
+    <portal v-if="existing" to="modal">
       <v-modal
         :title="$t('choose_one')"
         :buttons="{
@@ -61,30 +67,32 @@
             text: $t('done')
           }
         }"
+        action-required
         @close="existing = false"
         @done="existing = false"
-        action-required
       >
-        <div class="search">
-          <v-input
-            type="search"
-            :placeholder="$t('search')"
-            class="search-input"
-            @input="onSearchInput"
-          />
+        <div class="content">
+          <div class="search">
+            <v-input
+              type="search"
+              :placeholder="$t('search')"
+              class="search-input"
+              @input="onSearchInput"
+            />
+          </div>
+          <v-items
+            class="items"
+            collection="directus_files"
+            :view-type="viewType"
+            :selection="value ? [value] : []"
+            :filters="filters"
+            :view-query="viewQuery"
+            :view-options="viewOptions"
+            @options="setViewOptions"
+            @query="setViewQuery"
+            @select="saveSelection"
+          ></v-items>
         </div>
-        <v-items
-          class="items"
-          collection="directus_files"
-          :view-type="viewType"
-          :selection="value ? [value] : []"
-          :filters="filters"
-          :view-query="viewQuery"
-          :view-options="viewOptions"
-          @options="setViewOptions"
-          @query="setViewQuery"
-          @select="$emit('input', $event[$event.length - 1])"
-        ></v-items>
       </v-modal>
     </portal>
   </div>
@@ -101,48 +109,48 @@ export default {
     return {
       newFile: false,
       existing: false,
-
       viewOptionsOverride: {},
       viewTypeOverride: null,
       viewQueryOverride: {},
-      filtersOverride: []
+      filtersOverride: [],
+      image: _.cloneDeep(this.value)
     };
   },
   computed: {
     subtitle() {
-      if (!this.value) return "";
+      if (!this.image) return "";
 
       return (
-        this.value.filename.split(".").pop() +
+        this.image.filename.split(".").pop() +
         " • " +
-        this.$d(new Date(this.value.uploaded_on), "short")
+        this.$d(new Date(this.image.uploaded_on), "short")
       );
     },
     subtitleExtra() {
       // Image ? -> display dimensions and formatted filesize
-      return this.value.type && this.value.type.startsWith("image")
+      return this.image.type && this.image.type.startsWith("image")
         ? " • " +
-            this.value.width +
+            this.image.width +
             " x " +
-            this.value.height +
+            this.image.height +
             " (" +
-            formatSize(this.value.filesize) +
+            formatSize(this.image.filesize) +
             ")"
         : null;
     },
     src() {
-      return this.value.type && this.value.type.startsWith("image")
-        ? this.value.data.full_url
+      return this.image.type && this.image.type.startsWith("image")
+        ? this.image.data.full_url
         : null;
     },
     icon() {
-      return this.value.type && !this.value.type.startsWith("image")
-        ? getIcon(this.value.type)
+      return this.image.type && !this.image.type.startsWith("image")
+        ? getIcon(this.image.type)
         : null;
     },
     href() {
-      return this.value.type && this.value.type === "application/pdf"
-        ? this.value.data.full_url
+      return this.image.type && this.image.type === "application/pdf"
+        ? this.image.data.full_url
         : null;
     },
     viewOptions() {
@@ -179,14 +187,20 @@ export default {
         {
           field: "type",
           operator: "in",
-          value: this.options.accept.trim().split(/,\s*/)
+          value: (this.options.accept || "").trim().split(/,\s*/)
         }
       ];
     }
   },
+  created() {
+    this.onSearchInput = _.debounce(this.onSearchInput, 200);
+  },
   methods: {
     saveUpload(fileInfo) {
-      this.$emit("input", fileInfo.data);
+      this.image = fileInfo.data;
+      // We know that the primary key of directus_files is called `id`
+      this.$emit("input", { id: fileInfo.data.id });
+
       this.newFile = false;
     },
     setViewOptions(updates) {
@@ -205,23 +219,36 @@ export default {
       this.setViewQuery({
         q: value
       });
+    },
+    saveSelection(value) {
+      const file = value[value.length - 1];
+      this.image = file;
+      this.$emit("input", { id: file.id });
+    },
+    async removeFile() {
+      const file = this.value;
+      await this.$api.deleteItem("directus_files", file.id);
+      this.$notify({
+        title: this.$t("item_deleted"),
+        color: "green",
+        iconMain: "check"
+      });
+      this.image = null;
+      this.$emit("input", null);
     }
-  },
-  created() {
-    this.onSearchInput = this.$lodash.debounce(this.onSearchInput, 200);
   }
 };
 </script>
 
 <style lang="scss" scoped>
 .card,
-.dropzone {
+.uploader {
   margin-bottom: 20px;
   width: 100%;
   max-width: var(--width-x-large);
 }
 
-.dropzone {
+.uploader {
   height: 190px;
 }
 
@@ -238,20 +265,24 @@ button {
 }
 
 .search-input {
-  border-bottom: 1px solid var(--lightest-gray);
-  & >>> input {
+  border-bottom: 2px solid var(--lightest-gray);
+  &::v-deep input {
     border-radius: 0;
     border: none;
     padding-left: var(--page-padding);
     height: var(--header-height);
 
     &::placeholder {
-      color: var(--light-gray);
+      color: var(--dark-gray);
     }
   }
 }
 
-.items {
-  height: calc(100% - var(--header-height) - 1px);
+.content {
+  &::v-deep .v-layout {
+    height: auto;
+    max-height: none;
+    overflow: hidden;
+  }
 }
 </style>
